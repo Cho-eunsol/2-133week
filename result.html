@@ -1,0 +1,370 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>능력 결과 - 나무 꽃 피우기</title>
+<style>
+body {
+  margin: 0;
+  background: url('background1.jpg') no-repeat center center fixed;
+  background-size: cover;
+  color: #ff85b3;
+  font-family: Pretendard, sans-serif;
+  overflow: hidden;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  position: relative;
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  top: 0; left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0.55);
+  z-index: -1;
+}
+
+#tree-container {
+  position: relative;
+  width: 70vw;
+  max-width: 600px;
+  height: 80vh;
+  max-height: 800px;
+  background: url('tree.png') no-repeat bottom center;
+  background-size: contain;
+}
+
+#title {
+  color: #ff4d9e;
+  font-size: 1.2rem;
+  margin: 0;
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  letter-spacing: 0.05em;
+  font-weight: 600;
+}
+
+#subtitle {
+  color: #ff85b3; 
+  font-size: 0.8rem; 
+  position: absolute; 
+  top: calc(-1% + 10px); 
+  left: 50%; 
+  transform: translateX(-50%); 
+  white-space: nowrap;
+}
+
+#flower-layer {
+  position: absolute;
+  bottom: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.flower {
+  position: absolute;
+  width: 5px;
+  height: 5px;
+  opacity: 0;
+  border-radius: 50%;
+  background: #FF7DAF;
+  pointer-events: none;
+  filter: none;
+}
+
+@keyframes sway {
+  0% { transform: translateX(0) rotate(0deg); }
+  25% { transform: translateX(-2px) rotate(-5deg); }
+  50% { transform: translateX(2px) rotate(5deg); }
+  75% { transform: translateX(-1px) rotate(-3deg); }
+  100% { transform: translateX(0) rotate(0deg); }
+}
+
+.flower.sway {
+  animation: sway 2s ease-in-out infinite;
+}
+
+#result-box {
+  position: absolute;
+  left: 60px;
+  top: 18%;
+  transform: translateY(-50%);
+  width: 250px;
+  color: #d1d9e8;
+}
+
+#result-box .box {
+  background: rgba(255,255,255,0.07);
+  padding: 15px;
+  border-radius: 5px;
+  font-size: 0.85rem;
+  text-align: left;
+}
+
+.item { margin-bottom: 6px; }
+.ability { color:#9eb7ff; font-weight:bold; }
+
+#final-message {
+  color: #ff4d9e;
+  font-size: 1.2rem;
+  position: absolute;
+  top: 10%;
+  left: 50%;
+  transform: translateX(-50%);
+  opacity: 0;
+  transition: opacity 3s ease-in-out;
+  text-align: center;
+}
+
+#showResults, #restartBtn {
+  position: absolute;
+  bottom: 40px;
+  padding: 10px 20px;
+  background: #222;
+  color: #ff4d9e;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 1rem;
+}
+
+#showResults { left: 55%; transform: translateX(-50%);}
+#restartBtn { left: 47%; transform: translateX(-50%); }
+
+.lesson-text {
+  position: absolute;
+  padding: 6px 10px;
+  border-radius: 5px;
+  color: #686868;
+  font-size: 0.9rem;
+  font-weight: 350;
+  pointer-events: none;
+  opacity: 0;
+  max-width: 280px; 
+  word-wrap: break-word;
+  text-align: center;
+}
+</style>
+</head>
+<body>
+
+<div id="tree-container">
+  <h1 id="title"></h1>
+  <p id="subtitle">버튼을 눌러 획득 결과를 확인해보세요</p>
+  <div id="flower-layer"></div>
+</div>
+
+<div id="result-box">
+  <div class="box">
+    <div class="item">당신이 획득한 능력:</div>
+    <div class="item box-content"><span id="ability-list"></span></div>
+    <div class="item">성공 경험 <span id="wins"></span></div>
+    <div class="item">실패 경험 <span id="losses"></span></div>
+    <div class="item" style="margin-top:10px;"></div>
+    <div id="log" class="box-content"></div>
+  </div>
+</div>
+
+<div id="final-message"></div>
+
+<button id="showResults">결과 보기</button>
+<button id="restartBtn" onclick="window.location.href='index.html'">처음부터 다시 시작</button>
+
+<script>
+// 데이터 처리
+// result.html
+const data = JSON.parse(localStorage.getItem("gameResult"));
+
+if (!data) {
+  alert("결과 데이터가 없습니다. 먼저 게임을 진행해주세요.");
+  window.location.href = "index.html";
+}
+
+// 능력 교훈
+const lessons = {
+  "용기": "당신은 용기를 바탕으로 어려운<br>상황에서도 도전할 수 있습니다",
+  "지혜": "당신은 지혜를 바탕으로 상황을<br>깊이 이해하고 판단할 수 있습니다",
+  "창의력": "당신은 창의력을 바탕으로 다른<br>사람들과 다른 시선을 가지게 됩니다",
+  "인내": "당신은 인내를 바탕으로 목표를<br>꾸준히 추구할 수 있습니다",
+  "열정": "당신은 열정을 바탕으로 모든<br>일에 몰입할 수 있습니다",
+  "실패": "성공만이 나무를 성장시키는 것은 아닙니다<br>당신은 실패해도 다시 일어나는 근성을 얻었습니다",
+  "시간 초과": "성공만이 나무를 성장시키는 것은 아닙니다<br>당신은 포기하지 않는 끈기를 얻었습니다"
+};
+
+// 타자기 효과
+const titleText = "이제 당신이 원하는 완벽한 존재가 되셨나요?";
+const titleEl = document.getElementById("title");
+let index = 0;
+function typeWriter() {
+  if(index < titleText.length){
+    titleEl.textContent += titleText.charAt(index);
+    index++;
+    setTimeout(typeWriter, 100);
+  }
+}
+typeWriter();
+
+// 결과 표시
+document.getElementById("ability-list").textContent = data.abilities.join(", ");
+document.getElementById("wins").textContent = data.wins;
+document.getElementById("losses").textContent = data.losses;
+
+const logEl = document.getElementById("log");
+
+// 꽃잎 생성
+function createFlowers(count=80) {
+  const container = document.getElementById("flower-layer");
+  const centerX = container.offsetWidth / 2;
+  const centerY = container.offsetHeight / 2.5;
+  const radiusX = container.offsetWidth * 0.6;
+  const radiusY = container.offsetHeight * 0.25;
+
+  for(let i=0; i<count; i++) {
+    const flower = document.createElement("div");
+    flower.classList.add("flower");
+    flower.style.background = Math.random() < 0.5 ? "#FFB6C1" : "#FF7DAF";
+
+    const r = Math.sqrt(Math.random()) * (0.7 + Math.random() * 0.4); 
+    const theta = Math.random() * 2 * Math.PI + (Math.random() - 0.5) * 0.2; 
+    const offsetX = (Math.random() - 0.5) * 30; 
+    const offsetY = (Math.random() - 0.5) * 30;
+    const x = centerX + radiusX * r * Math.cos(theta) + offsetX;
+    const y = centerY + radiusY * r * Math.sin(theta) + offsetY;
+
+    flower.style.left = `${x}px`;
+    flower.style.top = `${y}px`;
+
+    const size = 3 + Math.random() * 3;
+    flower.style.width = `${size}px`;
+    flower.style.height = `${size}px`;
+
+    const rotateX = Math.random()*360;
+    const rotateY = Math.random()*360;
+    const rotateZ = Math.random()*360;
+    flower.style.transform = `scale(0) rotateX(${rotateX}deg) rotateY(${rotateY}deg) rotateZ(${rotateZ}deg)`;
+    container.appendChild(flower);
+
+    setTimeout(() => {
+      flower.style.transition = `opacity 0.8s ease-out, transform 0.9s cubic-bezier(.2,.9,.2,1)`;
+      flower.style.opacity = 1;
+      flower.style.transform = `scale(1) rotateX(${rotateX}deg) rotateY(${rotateY}deg) rotateZ(${rotateZ}deg)`;
+    }, 50 + Math.random()*400);
+  }
+}
+
+// 원형 위치 계산
+function getCircularPosition(index, total, radiusX=550, radiusY=250) {
+    const container = document.getElementById("tree-container");
+    const centerX = container.offsetLeft + container.offsetWidth / 2;
+    const centerY = container.offsetTop + container.offsetHeight / 2;
+
+    const angle = (2 * Math.PI / total) * index;
+    const offsetX = (Math.random() - 0.5) * 40; 
+    const offsetY = (Math.random() - 0.5) * 30;
+
+    const x = centerX + radiusX * Math.cos(angle) + offsetX;
+    const y = centerY + radiusY * Math.sin(angle) + offsetY;
+
+    return { x, y };
+}
+
+// 최대 7개의 결과만 표시
+const maxResults = 7;
+let failCount = 0;
+let timeoutCount = 0;
+const results = [];
+
+// log 처리
+for (let i = 0; i < data.log.length; i++) {
+  let key = data.log[i].split(" ")[0];
+  if (!data.abilities.includes(key)) {
+    if (key === "시간") { // 시간 초과 처리
+      key = "시간 초과";
+      timeoutCount++;
+      results.push(`${key} (${timeoutCount}번)`);
+    } else {
+      failCount++;
+      results.push(`실패 (${failCount}번)`);
+    }
+  } else {
+    results.push(key);
+  }
+  if (results.length >= maxResults) break;
+}
+
+// log에 div 생성
+results.forEach(item => {
+  const div = document.createElement("div");
+  div.textContent = item;
+  div.style.opacity = 0;
+  logEl.appendChild(div);
+});
+
+let currentIndex = 0;
+
+document.getElementById("showResults").addEventListener("click", () => {
+  const logChildren = Array.from(logEl.children);
+  if (currentIndex >= logChildren.length) {
+    titleEl.style.display = "none";
+    document.getElementById("result-box").style.display = "none";
+    document.getElementById("subtitle").style.display = "none";
+
+    // 기존 lesson-text 삭제
+    const lessonTexts = document.querySelectorAll('.lesson-text');
+    lessonTexts.forEach(el => el.remove());
+
+    const finalMsg = document.getElementById("final-message");
+    const finalText = "완벽한 자신만을 갈망하시나요? 성공과 실패, 모든 경험이 당신을 진정으로 성장하게 만드는 힘입니다";
+    finalMsg.textContent = "";
+    finalMsg.style.opacity = 1;
+
+    let i = 0;
+    function typeWriterFinal() {
+      if (i < finalText.length) {
+        finalMsg.textContent += finalText.charAt(i);
+        i++;
+        setTimeout(typeWriterFinal, 50);
+      }
+    }
+    typeWriterFinal();
+    return;
+  }
+
+  const div = logChildren[currentIndex];
+  div.style.transition = "opacity 0.6s";
+  div.style.opacity = 1;
+
+  createFlowers(400);
+
+  let key = div.textContent.split(" ")[0]; 
+  let content = data.abilities.includes(key) ? lessons[key] : lessons[key.includes("시간") ? "시간 초과" : "실패"];
+
+  const lessonDiv = document.createElement("div");
+  lessonDiv.classList.add("lesson-text");
+  lessonDiv.innerHTML = content;
+  document.body.appendChild(lessonDiv);
+
+  const pos = getCircularPosition(currentIndex, logChildren.length);
+  lessonDiv.style.left = `${pos.x - lessonDiv.offsetWidth/2}px`;
+  lessonDiv.style.top = `${pos.y - lessonDiv.offsetHeight/2}px`;
+
+  setTimeout(() => { 
+      lessonDiv.style.transition = "opacity 1s"; 
+      lessonDiv.style.opacity = 1; 
+  }, 50);
+
+  currentIndex++;
+});
+</script>
+
+</body>
+</html>
